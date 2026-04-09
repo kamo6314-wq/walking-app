@@ -9,8 +9,6 @@
     "amplify:build": "npm run build"
   },
   "dependencies": {
-    "@aws-amplify/backend": "^1.0.0",
-    "@aws-amplify/backend-cli": "^1.0.0",
     "@aws-amplify/ui-react": "^6.15.3",
     "aws-amplify": "^6.16.3",
     "lucide-react": "^0.294.0",
