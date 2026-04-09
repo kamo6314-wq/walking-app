@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Trophy, Star } from 'lucide-react'
+import { getAllUsers } from '@/lib/supabase'
 
 interface RankingUser {
   name: string
@@ -12,43 +13,44 @@ interface RankingUser {
 export default function Dashboard() {
   const [walkingRanking, setWalkingRanking] = useState<RankingUser[]>([])
   const [gachaRanking, setGachaRanking] = useState<RankingUser[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     loadRankings()
   }, [])
 
-  const loadRankings = () => {
-    // 登録ユーザーから実際のランキングを生成
-    const users = JSON.parse(localStorage.getItem('registeredUsers') || '[]')
-    
-    // 歩活ポイントランキング
-    const walkingRanking = users
-      .map((user: any) => {
-        const userPoints = JSON.parse(localStorage.getItem(`userPoints_${user.id}`) || '{"walking":0,"gacha":0}')
-        return {
+  const loadRankings = async () => {
+    setIsLoading(true)
+    try {
+      const users = await getAllUsers()
+      
+      // 歩活ポイントランキング
+      const walkingRanking = users
+        .map((user: any) => ({
           name: user.username,
-          points: userPoints.walking || 0,
+          points: user.walking_points || 0,
           avatar: user.avatar || user.username.charAt(0)
-        }
-      })
-      .sort((a: any, b: any) => b.points - a.points)
-      .slice(0, 10)
-    
-    // ガチャポイントランキング
-    const gachaRanking = users
-      .map((user: any) => {
-        const userPoints = JSON.parse(localStorage.getItem(`userPoints_${user.id}`) || '{"walking":0,"gacha":0}')
-        return {
+        }))
+        .sort((a: any, b: any) => b.points - a.points)
+        .slice(0, 10)
+      
+      // ガチャポイントランキング
+      const gachaRanking = users
+        .map((user: any) => ({
           name: user.username,
-          points: userPoints.gacha || 0,
+          points: user.gacha_points || 0,
           avatar: user.avatar || user.username.charAt(0)
-        }
-      })
-      .sort((a: any, b: any) => b.points - a.points)
-      .slice(0, 10)
-    
-    setWalkingRanking(walkingRanking)
-    setGachaRanking(gachaRanking)
+        }))
+        .sort((a: any, b: any) => b.points - a.points)
+        .slice(0, 10)
+      
+      setWalkingRanking(walkingRanking)
+      setGachaRanking(gachaRanking)
+    } catch (error) {
+      console.error('ランキング読み込みエラー:', error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const getMedalIcon = (index: number) => {
@@ -68,7 +70,11 @@ export default function Dashboard() {
             <h2 className="text-lg font-bold text-white chalk-text">歩活TOP10</h2>
           </div>
           <div className="space-y-2">
-            {walkingRanking.length === 0 ? (
+            {isLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto"></div>
+              </div>
+            ) : walkingRanking.length === 0 ? (
               <div className="text-center py-8 text-white/60 chalk-text">
                 <p className="text-sm">まだランキングがありません</p>
                 <p className="text-xs mt-2">歩いてポイントを獲得しよう！</p>
@@ -101,7 +107,11 @@ export default function Dashboard() {
             <h2 className="text-lg font-bold text-white chalk-text">ガチャTOP10</h2>
           </div>
           <div className="space-y-2">
-            {gachaRanking.length === 0 ? (
+            {isLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto"></div>
+              </div>
+            ) : gachaRanking.length === 0 ? (
               <div className="text-center py-8 text-white/60 chalk-text">
                 <p className="text-sm">まだランキングがありません</p>
                 <p className="text-xs mt-2">ガチャを引いてポイントを獲得しよう！</p>

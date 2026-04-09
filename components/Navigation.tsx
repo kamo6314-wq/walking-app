@@ -16,7 +16,8 @@ export default function Navigation({ activeTab, onTabChange }: NavigationProps) 
       const user = localStorage.getItem('currentUser')
       if (user) {
         const userData = JSON.parse(user)
-        setIsAdmin(userData.isAdmin || false)
+        // Supabaseのフィールド名に対応
+        setIsAdmin(userData.isAdmin || userData.is_admin || false)
       }
     }
   }, [])

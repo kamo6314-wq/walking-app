@@ -26,26 +26,52 @@ export default function Home() {
         const userData = JSON.parse(user)
         setCurrentUser(userData)
         
-        // ユーザーIDごとのポイントを読み込み
-        const saved = localStorage.getItem(`userPoints_${userData.id}`) || localStorage.getItem('userPoints')
-        if (saved) {
-          const data = JSON.parse(saved)
-          setWalkingPoints(data.walking || 0)
-          setGachaPoints(data.gacha || 0)
+        // Supabaseから最新のポイントを取得
+        const loadPoints = async () => {
+          try {
+            const { getAllUsers } = await import('@/lib/supabase')
+            const users = await getAllUsers()
+            const currentUserData = users.find((u: any) => u.id === userData.id)
+            if (currentUserData) {
+              setWalkingPoints(currentUserData.walking_points || 0)
+              setGachaPoints(currentUserData.gacha_points || 0)
+            }
+          } catch (error) {
+            console.error('ポイント読み込みエラー:', error)
+            // フォールバック: localStorageから読み込み
+            const saved = localStorage.getItem(`userPoints_${userData.id}`) || localStorage.getItem('userPoints')
+            if (saved) {
+              const data = JSON.parse(saved)
+              setWalkingPoints(data.walking || 0)
+              setGachaPoints(data.gacha || 0)
+            }
+          }
         }
+        loadPoints()
       }
       setIsLoading(false)
     }
   }, [])
 
-  const updatePoints = (walking: number, gacha: number) => {
+  const updatePoints = async (walking: number, gacha: number) => {
     setWalkingPoints(walking)
     setGachaPoints(gacha)
-    // ユーザーIDごとにポイントを保存
+    
+    // Supabaseに保存
     if (currentUser?.id) {
+      try {
+        const { updateUser } = await import('@/lib/supabase')
+        await updateUser(currentUser.id, {
+          walking_points: walking,
+          gacha_points: gacha
+        })
+      } catch (error) {
+        console.error('ポイント更新エラー:', error)
+      }
+      
+      // ローカルストレージにも保存（後方互換性）
       localStorage.setItem(`userPoints_${currentUser.id}`, JSON.stringify({ walking, gacha }))
     }
-    // 後方互換性のため
     localStorage.setItem('userPoints', JSON.stringify({ walking, gacha }))
   }
 
@@ -91,7 +117,7 @@ export default function Home() {
   }
 
   // 管理者タブ選択時
-  if (activeTab === 'admin' && currentUser?.isAdmin) {
+  if (activeTab === 'admin' && (currentUser?.isAdmin || currentUser?.is_admin)) {
     return (
       <div className="min-h-screen">
         <AdminDashboard onLogout={handleLogout} />
