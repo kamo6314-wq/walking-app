@@ -5,7 +5,6 @@ import { Camera, Save } from 'lucide-react'
 
 export default function ProfileSettings() {
   const [username, setUsername] = useState('')
-  const [email, setEmail] = useState('')
   const [avatar, setAvatar] = useState('')
 
   useEffect(() => {
@@ -13,7 +12,6 @@ export default function ProfileSettings() {
     if (user) {
       const data = JSON.parse(user)
       setUsername(data.username || '')
-      setEmail(data.email || '')
       setAvatar(data.avatar || '')
     }
   }, [])
@@ -30,13 +28,21 @@ export default function ProfileSettings() {
   }
 
   const handleSave = () => {
-    const user = {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}')
+    const updatedUser = {
+      ...currentUser,
       username,
-      email,
-      avatar,
-      registeredAt: new Date().toISOString()
+      avatar
     }
-    localStorage.setItem('currentUser', JSON.stringify(user))
+    localStorage.setItem('currentUser', JSON.stringify(updatedUser))
+    
+    // registeredUsersも更新
+    const users = JSON.parse(localStorage.getItem('registeredUsers') || '[]')
+    const updatedUsers = users.map((u: any) => 
+      u.id === currentUser.id ? updatedUser : u
+    )
+    localStorage.setItem('registeredUsers', JSON.stringify(updatedUsers))
+    
     alert('プロフィールを更新しました')
   }
 
@@ -76,16 +82,6 @@ export default function ProfileSettings() {
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="w-full border rounded-lg px-4 py-2"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-semibold mb-2">メールアドレス</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
             className="w-full border rounded-lg px-4 py-2"
           />
         </div>

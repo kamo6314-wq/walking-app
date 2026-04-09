@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { User, Mail, Trophy, Calendar, Gift, Shield } from 'lucide-react'
+import { User, Trophy, Calendar, Gift, Shield } from 'lucide-react'
 
 interface RegisterProps {
   onRegister: (isAdmin: boolean) => void
@@ -9,7 +9,6 @@ interface RegisterProps {
 
 export default function Register({ onRegister }: RegisterProps) {
   const [username, setUsername] = useState('')
-  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [inviteCode, setInviteCode] = useState('')
   const [showInviteCode, setShowInviteCode] = useState(false)
@@ -19,13 +18,12 @@ export default function Register({ onRegister }: RegisterProps) {
     return users.some((u: any) => u.username === username)
   }
 
-  const registerUser = (username: string, email: string, password: string, isAdmin: boolean) => {
+  const registerUser = (username: string, password: string, isAdmin: boolean) => {
     const users = JSON.parse(localStorage.getItem('registeredUsers') || '[]')
     
     const newUser = {
       id: Date.now().toString(),
       username,
-      email,
       password, // 本番環境ではハッシュ化必須
       isAdmin,
       registeredAt: new Date().toISOString(),
@@ -46,11 +44,6 @@ export default function Register({ onRegister }: RegisterProps) {
       return
     }
 
-    if (!email.trim() || !email.includes('@')) {
-      alert('正しいメールアドレスを入力してください')
-      return
-    }
-
     if (!password || password.length < 4) {
       alert('パスワードは4文字以上で入力してください')
       return
@@ -66,7 +59,7 @@ export default function Register({ onRegister }: RegisterProps) {
     const isAdmin = inviteCode === '0325'
 
     // ユーザー登録
-    const user = registerUser(username, email, password, isAdmin)
+    const user = registerUser(username, password, isAdmin)
 
     // 現在のユーザーとして設定
     localStorage.setItem('currentUser', JSON.stringify(user))
@@ -151,22 +144,6 @@ export default function Register({ onRegister }: RegisterProps) {
               />
             </div>
             <p className="text-xs text-gray-500 mt-1">※ 他のユーザーと重複できません</p>
-          </div>
-
-          <div className="mb-6">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              メールアドレス *
-            </label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-3 text-gray-400" size={20} />
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="example@email.com"
-              />
-            </div>
           </div>
 
           <div className="mb-6">
