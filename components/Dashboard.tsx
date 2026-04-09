@@ -6,6 +6,7 @@ import { Trophy, Star } from 'lucide-react'
 interface RankingUser {
   name: string
   points: number
+  avatar?: string
 }
 
 export default function Dashboard() {
@@ -13,31 +14,42 @@ export default function Dashboard() {
   const [gachaRanking, setGachaRanking] = useState<RankingUser[]>([])
 
   useEffect(() => {
-    const walking = JSON.parse(localStorage.getItem('walkingRanking') || '[]')
-    const gacha = JSON.parse(localStorage.getItem('gachaRanking') || '[]')
-    
-    if (walking.length === 0) {
-      const mockWalking = Array.from({ length: 10 }, (_, i) => ({
-        name: `ユーザー${i + 1}`,
-        points: Math.floor(Math.random() * 10000) + 1000
-      })).sort((a, b) => b.points - a.points)
-      localStorage.setItem('walkingRanking', JSON.stringify(mockWalking))
-      setWalkingRanking(mockWalking)
-    } else {
-      setWalkingRanking(walking)
-    }
-
-    if (gacha.length === 0) {
-      const mockGacha = Array.from({ length: 10 }, (_, i) => ({
-        name: `ユーザー${i + 1}`,
-        points: Math.floor(Math.random() * 5000) + 500
-      })).sort((a, b) => b.points - a.points)
-      localStorage.setItem('gachaRanking', JSON.stringify(mockGacha))
-      setGachaRanking(mockGacha)
-    } else {
-      setGachaRanking(gacha)
-    }
+    loadRankings()
   }, [])
+
+  const loadRankings = () => {
+    // 登録ユーザーから実際のランキングを生成
+    const users = JSON.parse(localStorage.getItem('registeredUsers') || '[]')
+    
+    // 歩活ポイントランキング
+    const walkingRanking = users
+      .map((user: any) => {
+        const userPoints = JSON.parse(localStorage.getItem(`userPoints_${user.id}`) || '{"walking":0,"gacha":0}')
+        return {
+          name: user.username,
+          points: userPoints.walking || 0,
+          avatar: user.avatar || user.username.charAt(0)
+        }
+      })
+      .sort((a: any, b: any) => b.points - a.points)
+      .slice(0, 10)
+    
+    // ガチャポイントランキング
+    const gachaRanking = users
+      .map((user: any) => {
+        const userPoints = JSON.parse(localStorage.getItem(`userPoints_${user.id}`) || '{"walking":0,"gacha":0}')
+        return {
+          name: user.username,
+          points: userPoints.gacha || 0,
+          avatar: user.avatar || user.username.charAt(0)
+        }
+      })
+      .sort((a: any, b: any) => b.points - a.points)
+      .slice(0, 10)
+    
+    setWalkingRanking(walkingRanking)
+    setGachaRanking(gachaRanking)
+  }
 
   const getMedalIcon = (index: number) => {
     if (index === 0) return '🥇'
@@ -56,22 +68,29 @@ export default function Dashboard() {
             <h2 className="text-lg font-bold text-white chalk-text">歩活TOP10</h2>
           </div>
           <div className="space-y-2">
-            {walkingRanking.slice(0, 10).map((user, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between p-2 bg-white/10 rounded backdrop-blur-sm hover:bg-white/20 transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-lg font-bold text-yellow-300 w-8 text-center">
-                    {getMedalIcon(index)}
-                  </span>
-                  <span className="text-white chalk-text text-sm">{user.name}</span>
-                </div>
-                <span className="font-bold text-yellow-200 chalk-text text-sm">
-                  {user.points.toLocaleString()}
-                </span>
+            {walkingRanking.length === 0 ? (
+              <div className="text-center py-8 text-white/60 chalk-text">
+                <p className="text-sm">まだランキングがありません</p>
+                <p className="text-xs mt-2">歩いてポイントを獲得しよう！</p>
               </div>
-            ))}
+            ) : (
+              walkingRanking.slice(0, 10).map((user, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-2 bg-white/10 rounded backdrop-blur-sm hover:bg-white/20 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-bold text-yellow-300 w-8 text-center">
+                      {getMedalIcon(index)}
+                    </span>
+                    <span className="text-white chalk-text text-sm">{user.name}</span>
+                  </div>
+                  <span className="font-bold text-yellow-200 chalk-text text-sm">
+                    {user.points.toLocaleString()}
+                  </span>
+                </div>
+              ))
+            )}
           </div>
         </section>
 
@@ -82,22 +101,29 @@ export default function Dashboard() {
             <h2 className="text-lg font-bold text-white chalk-text">ガチャTOP10</h2>
           </div>
           <div className="space-y-2">
-            {gachaRanking.slice(0, 10).map((user, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between p-2 bg-white/10 rounded backdrop-blur-sm hover:bg-white/20 transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-lg font-bold text-pink-300 w-8 text-center">
-                    {getMedalIcon(index)}
-                  </span>
-                  <span className="text-white chalk-text text-sm">{user.name}</span>
-                </div>
-                <span className="font-bold text-pink-200 chalk-text text-sm">
-                  {user.points.toLocaleString()}
-                </span>
+            {gachaRanking.length === 0 ? (
+              <div className="text-center py-8 text-white/60 chalk-text">
+                <p className="text-sm">まだランキングがありません</p>
+                <p className="text-xs mt-2">ガチャを引いてポイントを獲得しよう！</p>
               </div>
-            ))}
+            ) : (
+              gachaRanking.slice(0, 10).map((user, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-2 bg-white/10 rounded backdrop-blur-sm hover:bg-white/20 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-bold text-pink-300 w-8 text-center">
+                      {getMedalIcon(index)}
+                    </span>
+                    <span className="text-white chalk-text text-sm">{user.name}</span>
+                  </div>
+                  <span className="font-bold text-pink-200 chalk-text text-sm">
+                    {user.points.toLocaleString()}
+                  </span>
+                </div>
+              ))
+            )}
           </div>
         </section>
       </div>

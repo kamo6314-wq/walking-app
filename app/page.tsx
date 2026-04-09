@@ -2,47 +2,76 @@
 
 import { useState, useEffect } from 'react'
 import Register from '@/components/Register'
+import Login from '@/components/Login'
 import Dashboard from '@/components/Dashboard'
 import Gacha from '@/components/Gacha'
 import History from '@/components/History'
 import Events from '@/components/Events'
 import Navigation from '@/components/Navigation'
-import AdminLogin from '@/components/AdminLogin'
 import AdminDashboard from '@/components/AdminDashboard'
 import ProfileSettings from '@/components/ProfileSettings'
 
 export default function Home() {
-  const [isRegistered, setIsRegistered] = useState<boolean | null>(null)
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
+  const [currentUser, setCurrentUser] = useState<any>(null)
+  const [showRegister, setShowRegister] = useState(false)
   const [activeTab, setActiveTab] = useState('dashboard')
   const [walkingPoints, setWalkingPoints] = useState(0)
   const [gachaPoints, setGachaPoints] = useState(0)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const user = localStorage.getItem('currentUser')
-      const admin = localStorage.getItem('isAdmin')
-      setIsRegistered(!!user)
-      setIsAdmin(admin === 'true')
-      
       if (user) {
-        const saved = localStorage.getItem('userPoints')
+        const userData = JSON.parse(user)
+        setCurrentUser(userData)
+        
+        // ユーザーIDごとのポイントを読み込み
+        const saved = localStorage.getItem(`userPoints_${userData.id}`) || localStorage.getItem('userPoints')
         if (saved) {
           const data = JSON.parse(saved)
           setWalkingPoints(data.walking || 0)
           setGachaPoints(data.gacha || 0)
         }
       }
+      setIsLoading(false)
     }
   }, [])
 
   const updatePoints = (walking: number, gacha: number) => {
     setWalkingPoints(walking)
     setGachaPoints(gacha)
+    // ユーザーIDごとにポイントを保存
+    if (currentUser?.id) {
+      localStorage.setItem(`userPoints_${currentUser.id}`, JSON.stringify({ walking, gacha }))
+    }
+    // 後方互換性のため
     localStorage.setItem('userPoints', JSON.stringify({ walking, gacha }))
   }
 
-  if (isRegistered === null || isAdmin === null) {
+  const handleLogin = (user: any) => {
+    setCurrentUser(user)
+    const saved = localStorage.getItem(`userPoints_${user.id}`) || localStorage.getItem('userPoints')
+    if (saved) {
+      const data = JSON.parse(saved)
+      setWalkingPoints(data.walking || 0)
+      setGachaPoints(data.gacha || 0)
+    }
+  }
+
+  const handleRegister = () => {
+    const user = JSON.parse(localStorage.getItem('currentUser') || '{}')
+    setCurrentUser(user)
+    setShowRegister(false)
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem('currentUser')
+    setCurrentUser(null)
+    setActiveTab('dashboard')
+  }
+
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -53,18 +82,24 @@ export default function Home() {
     )
   }
 
-  // 管理者画面
-  if (window.location.pathname === '/admin' || window.location.hash === '#admin') {
-    if (!isAdmin) {
-      return <AdminLogin onLogin={() => setIsAdmin(true)} />
+  // 未ログイン
+  if (!currentUser) {
+    if (showRegister) {
+      return <Register onRegister={handleRegister} />
     }
-    return <AdminDashboard onLogout={() => setIsAdmin(false)} />
+    return <Login onLogin={handleLogin} onRegister={() => setShowRegister(true)} />
   }
 
-  if (!isRegistered) {
-    return <Register onRegister={() => setIsRegistered(true)} />
+  // 管理者タブ選択時
+  if (activeTab === 'admin' && currentUser?.isAdmin) {
+    return (
+      <div className="min-h-screen">
+        <AdminDashboard onLogout={handleLogout} />
+      </div>
+    )
   }
 
+  // 通常画面
   return (
     <main className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       <header className="bg-[var(--primary-blue)] text-white p-4 shadow-lg">
