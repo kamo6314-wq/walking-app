@@ -4,3 +4,7 @@ out
 dist
 .env*.local
 .vercel
+
+# Amplify
+amplify_outputs.json
+.amplify
