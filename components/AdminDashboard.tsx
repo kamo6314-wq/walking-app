@@ -1,17 +1,18 @@
 'use client'
 
 import { useState } from 'react'
-import { Users, Calendar, MessageSquare, Settings, LogOut, Plus } from 'lucide-react'
+import { Users, Calendar, MessageSquare, Settings, LogOut, UserCog } from 'lucide-react'
 import EventManager from './EventManager'
 import ParticipantsList from './ParticipantsList'
 import EventChat from './EventChat'
+import UserManagement from './UserManagement'
 
 interface AdminDashboardProps {
   onLogout: () => void
 }
 
 export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
-  const [activeTab, setActiveTab] = useState('events')
+  const [activeTab, setActiveTab] = useState('users')
 
   const handleLogout = () => {
     localStorage.removeItem('isAdmin')
@@ -39,6 +40,17 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       <div className="flex">
         <nav className="w-64 bg-white shadow-lg min-h-screen p-4">
           <div className="space-y-2">
+            <button
+              onClick={() => setActiveTab('users')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                activeTab === 'users'
+                  ? 'bg-gray-800 text-white'
+                  : 'hover:bg-gray-100'
+              }`}
+            >
+              <UserCog size={20} />
+              ユーザー管理
+            </button>
             <button
               onClick={() => setActiveTab('events')}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
@@ -76,6 +88,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         </nav>
 
         <main className="flex-1 p-6">
+          {activeTab === 'users' && <UserManagement />}
           {activeTab === 'events' && <EventManager />}
           {activeTab === 'participants' && <ParticipantsList />}
           {activeTab === 'chat' && <EventChat />}
