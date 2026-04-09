@@ -15,18 +15,33 @@ export default function Login({ onLogin, onRegister }: LoginProps) {
 
   const handleBiometricLogin = async () => {
     if (!window.PublicKeyCredential) {
-      alert('このブラウザは生体認証に対応していません')
+      alert('このブラウザはFace ID / Touch IDに対応していません')
       return
     }
 
     try {
+      // 最後にログインしたユーザーを取得
+      const lastUser = localStorage.getItem('lastLoggedInUser')
+      if (!lastUser) {
+        alert('生体認証が設定されていません。\nパスワードでログインしてください。')
+        return
+      }
+
+      // 生体認証情報の確認
+      const biometricData = localStorage.getItem(`biometric_${lastUser}`)
+      if (!biometricData) {
+        alert('生体認証が設定されていません。\nパスワードでログインしてください。')
+        return
+      }
+
       const challenge = new Uint8Array(32)
       window.crypto.getRandomValues(challenge)
 
       const publicKeyCredentialRequestOptions: PublicKeyCredentialRequestOptions = {
         challenge,
         timeout: 60000,
-        userVerification: "required"
+        userVerification: "required",
+        rpId: window.location.hostname === 'localhost' ? 'localhost' : window.location.hostname
       }
 
       const credential = await navigator.credentials.get({
@@ -34,22 +49,23 @@ export default function Login({ onLogin, onRegister }: LoginProps) {
       })
 
       if (credential) {
-        // 生体認証成功 - 最後にログインしたユーザーを取得
-        const lastUser = localStorage.getItem('lastLoggedInUser')
-        if (lastUser) {
-          const users = JSON.parse(localStorage.getItem('registeredUsers') || '[]')
-          const user = users.find((u: any) => u.username === lastUser)
-          if (user) {
-            localStorage.setItem('currentUser', JSON.stringify(user))
-            onLogin(user)
-            return
-          }
+        // Face ID / Touch ID 認証成功
+        const users = JSON.parse(localStorage.getItem('registeredUsers') || '[]')
+        const user = users.find((u: any) => u.username === lastUser)
+        if (user) {
+          localStorage.setItem('currentUser', JSON.stringify(user))
+          onLogin(user)
+          return
         }
         alert('ユーザー情報が見つかりません')
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('生体認証エラー:', error)
-      alert('生体認証に失敗しました')
+      if (error.name === 'NotAllowedError') {
+        alert('認証がキャンセルされました')
+      } else {
+        alert('Face ID / Touch ID 認証に失敗しました\nパスワードでログインしてください')
+      }
     }
   }
 
@@ -86,13 +102,13 @@ export default function Login({ onLogin, onRegister }: LoginProps) {
         </div>
 
         <div className="bg-white rounded-2xl shadow-2xl p-8">
-          {/* 生体認証ボタン */}
+          {/* Face ID / Touch ID ボタン */}
           <button
             onClick={handleBiometricLogin}
             className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-4 rounded-lg font-bold text-lg hover:from-purple-700 hover:to-blue-700 transition-all flex items-center justify-center gap-3 mb-6"
           >
             <Fingerprint size={24} />
-            生体認証でログイン
+            Face ID / Touch ID でログイン
           </button>
 
           <div className="relative mb-6">

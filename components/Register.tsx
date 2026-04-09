@@ -63,9 +63,10 @@ export default function Register({ onRegister }: RegisterProps) {
 
     // 現在のユーザーとして設定
     localStorage.setItem('currentUser', JSON.stringify(user))
+    localStorage.setItem('lastLoggedInUser', username)
     localStorage.setItem('userPoints', JSON.stringify({ walking: 0, gacha: 0 }))
 
-    // 生体認証の設定を試みる
+    // Face ID / Touch ID の設定を試みる
     if (window.PublicKeyCredential) {
       try {
         await setupBiometricAuth(username)
@@ -78,8 +79,7 @@ export default function Register({ onRegister }: RegisterProps) {
   }
 
   const setupBiometricAuth = async (username: string) => {
-    // Web Authentication API (WebAuthn) を使用
-    // 実際の実装では、サーバー側での検証が必要
+    // Face ID / Touch ID の設定
     try {
       const challenge = new Uint8Array(32)
       window.crypto.getRandomValues(challenge)
@@ -88,16 +88,20 @@ export default function Register({ onRegister }: RegisterProps) {
         challenge,
         rp: {
           name: "歩活アプリ",
-          id: window.location.hostname
+          id: window.location.hostname === 'localhost' ? 'localhost' : window.location.hostname
         },
         user: {
           id: new TextEncoder().encode(username),
           name: username,
           displayName: username
         },
-        pubKeyCredParams: [{ alg: -7, type: "public-key" }],
+        pubKeyCredParams: [
+          { alg: -7, type: "public-key" },  // ES256
+          { alg: -257, type: "public-key" } // RS256
+        ],
         authenticatorSelection: {
-          authenticatorAttachment: "platform",
+          authenticatorAttachment: "platform", // Face ID / Touch ID などのデバイス内蔵認証
+          requireResidentKey: false,
           userVerification: "required"
         },
         timeout: 60000,
@@ -109,11 +113,19 @@ export default function Register({ onRegister }: RegisterProps) {
       })
 
       if (credential) {
-        localStorage.setItem(`biometric_${username}`, 'enabled')
-        alert('生体認証が設定されました')
+        localStorage.setItem(`biometric_${username}`, JSON.stringify({
+          credentialId: Array.from(new Uint8Array((credential as any).rawId)),
+          enabled: true
+        }))
+        localStorage.setItem('lastLoggedInUser', username)
+        alert('Face ID / Touch ID が設定されました！\n次回から生体認証でログインできます。')
       }
-    } catch (error) {
-      console.log('生体認証の設定に失敗:', error)
+    } catch (error: any) {
+      console.log('生体認証の設定エラー:', error)
+      // エラーでも登録は続行
+      if (error.name === 'NotAllowedError') {
+        console.log('ユーザーが生体認証をキャンセルしました')
+      }
     }
   }
 
