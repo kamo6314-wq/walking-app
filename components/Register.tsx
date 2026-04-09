@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { User, Trophy, Calendar, Gift, Shield } from 'lucide-react'
+import { registerUser, getUserByUsername } from '@/lib/supabase'
 
 interface RegisterProps {
   onRegister: (isAdmin: boolean) => void
@@ -12,29 +13,7 @@ export default function Register({ onRegister }: RegisterProps) {
   const [password, setPassword] = useState('')
   const [inviteCode, setInviteCode] = useState('')
   const [showInviteCode, setShowInviteCode] = useState(false)
-
-  const checkUsernameExists = (username: string): boolean => {
-    const users = JSON.parse(localStorage.getItem('registeredUsers') || '[]')
-    return users.some((u: any) => u.username === username)
-  }
-
-  const registerUser = (username: string, password: string, isAdmin: boolean) => {
-    const users = JSON.parse(localStorage.getItem('registeredUsers') || '[]')
-    
-    const newUser = {
-      id: Date.now().toString(),
-      username,
-      password, // 本番環境ではハッシュ化必須
-      isAdmin,
-      registeredAt: new Date().toISOString(),
-      avatar: ''
-    }
-
-    users.push(newUser)
-    localStorage.setItem('registeredUsers', JSON.stringify(users))
-    
-    return newUser
-  }
+  const [isLoading, setIsLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -49,33 +28,43 @@ export default function Register({ onRegister }: RegisterProps) {
       return
     }
 
-    // ユーザー名の重複チェック
-    if (checkUsernameExists(username)) {
-      alert('このユーザー名は既に使用されています')
-      return
-    }
+    setIsLoading(true)
 
-    // 招待コードチェック（管理者登録）
-    const isAdmin = inviteCode === '0325'
-
-    // ユーザー登録
-    const user = registerUser(username, password, isAdmin)
-
-    // 現在のユーザーとして設定
-    localStorage.setItem('currentUser', JSON.stringify(user))
-    localStorage.setItem('lastLoggedInUser', username)
-    localStorage.setItem('userPoints', JSON.stringify({ walking: 0, gacha: 0 }))
-
-    // Face ID / Touch ID の設定を試みる
-    if (window.PublicKeyCredential) {
-      try {
-        await setupBiometricAuth(username)
-      } catch (error) {
-        console.log('生体認証の設定をスキップしました')
+    try {
+      // ユーザー名の重複チェック
+      const existingUser = await getUserByUsername(username)
+      if (existingUser) {
+        alert('このユーザー名は既に使用されています')
+        setIsLoading(false)
+        return
       }
-    }
 
-    onRegister(isAdmin)
+      // 招待コードチェック（管理者登録）
+      const isAdmin = inviteCode === '0325'
+
+      // ユーザー登録
+      const newUser = await registerUser(username, password, isAdmin)
+
+      // 現在のユーザーとして設定
+      localStorage.setItem('currentUser', JSON.stringify(newUser))
+      localStorage.setItem('lastLoggedInUser', username)
+
+      // Face ID / Touch ID の設定を試みる
+      if (window.PublicKeyCredential) {
+        try {
+          await setupBiometricAuth(username)
+        } catch (error) {
+          console.log('生体認証の設定をスキップしました')
+        }
+      }
+
+      onRegister(isAdmin)
+    } catch (error) {
+      console.error('登録エラー:', error)
+      alert('登録に失敗しました。もう一度お試しください。')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const setupBiometricAuth = async (username: string) => {
@@ -201,9 +190,10 @@ export default function Register({ onRegister }: RegisterProps) {
 
           <button
             type="submit"
-            className="w-full bg-[var(--primary-blue)] text-white py-3 rounded-lg font-bold text-lg hover:bg-[var(--secondary-blue)] transition-colors"
+            disabled={isLoading}
+            className="w-full bg-[var(--primary-blue)] text-white py-3 rounded-lg font-bold text-lg hover:bg-[var(--secondary-blue)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            登録して始める
+            {isLoading ? '登録中...' : '登録して始める'}
           </button>
 
           <div className="grid grid-cols-3 gap-4 mt-8">

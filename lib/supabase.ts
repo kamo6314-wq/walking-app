@@ -3,10 +3,15 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Supabaseクライアントを条件付きで作成
+export const supabase = supabaseUrl && supabaseAnonKey 
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null
 
 // ユーザー登録
 export async function registerUser(username: string, password: string, isAdmin: boolean) {
+  if (!supabase) throw new Error('Supabase not configured')
+  
   const { data, error } = await supabase
     .from('users')
     .insert([
@@ -28,6 +33,8 @@ export async function registerUser(username: string, password: string, isAdmin: 
 
 // ユーザー名でユーザーを検索
 export async function getUserByUsername(username: string) {
+  if (!supabase) throw new Error('Supabase not configured')
+  
   const { data, error } = await supabase
     .from('users')
     .select('*')
@@ -40,6 +47,8 @@ export async function getUserByUsername(username: string) {
 
 // ユーザー認証
 export async function authenticateUser(username: string, password: string) {
+  if (!supabase) throw new Error('Supabase not configured')
+  
   const { data, error } = await supabase
     .from('users')
     .select('*')
@@ -53,6 +62,8 @@ export async function authenticateUser(username: string, password: string) {
 
 // 全ユーザー取得
 export async function getAllUsers() {
+  if (!supabase) throw new Error('Supabase not configured')
+  
   const { data, error } = await supabase
     .from('users')
     .select('*')
@@ -64,6 +75,8 @@ export async function getAllUsers() {
 
 // ユーザー削除
 export async function deleteUser(userId: string) {
+  if (!supabase) throw new Error('Supabase not configured')
+  
   const { error } = await supabase
     .from('users')
     .delete()
@@ -75,6 +88,8 @@ export async function deleteUser(userId: string) {
 
 // 全ユーザー削除
 export async function deleteAllUsers() {
+  if (!supabase) throw new Error('Supabase not configured')
+  
   const { error } = await supabase
     .from('users')
     .delete()
@@ -86,6 +101,8 @@ export async function deleteAllUsers() {
 
 // ユーザー更新
 export async function updateUser(userId: string, updates: any) {
+  if (!supabase) throw new Error('Supabase not configured')
+  
   const { data, error } = await supabase
     .from('users')
     .update(updates)
@@ -106,6 +123,8 @@ export async function saveWalkRecord(
   type: string,
   path: any[]
 ) {
+  if (!supabase) throw new Error('Supabase not configured')
+  
   const { data, error } = await supabase
     .from('walk_records')
     .insert([
@@ -127,6 +146,8 @@ export async function saveWalkRecord(
 
 // ユーザーの歩行記録を取得
 export async function getUserWalkRecords(userId: string) {
+  if (!supabase) throw new Error('Supabase not configured')
+  
   const { data, error } = await supabase
     .from('walk_records')
     .select('*')
@@ -146,6 +167,8 @@ export async function createEvent(
   bonusPoints: number,
   checkpoints: any[]
 ) {
+  if (!supabase) throw new Error('Supabase not configured')
+  
   const { data, error } = await supabase
     .from('events')
     .insert([
@@ -168,6 +191,8 @@ export async function createEvent(
 
 // 全イベント取得
 export async function getAllEvents() {
+  if (!supabase) throw new Error('Supabase not configured')
+  
   const { data, error } = await supabase
     .from('events')
     .select('*')

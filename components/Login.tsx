@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { User, Lock, Fingerprint } from 'lucide-react'
+import { authenticateUser } from '@/lib/supabase'
 
 interface LoginProps {
   onLogin: (user: any) => void
@@ -12,6 +13,7 @@ export default function Login({ onLogin, onRegister }: LoginProps) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
 
   const handleBiometricLogin = async () => {
     if (!window.PublicKeyCredential) {
@@ -69,7 +71,7 @@ export default function Login({ onLogin, onRegister }: LoginProps) {
     }
   }
 
-  const handlePasswordLogin = (e: React.FormEvent) => {
+  const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
 
@@ -78,15 +80,23 @@ export default function Login({ onLogin, onRegister }: LoginProps) {
       return
     }
 
-    const users = JSON.parse(localStorage.getItem('registeredUsers') || '[]')
-    const user = users.find((u: any) => u.username === username && u.password === password)
+    setIsLoading(true)
 
-    if (user) {
-      localStorage.setItem('currentUser', JSON.stringify(user))
-      localStorage.setItem('lastLoggedInUser', username)
-      onLogin(user)
-    } else {
-      setError('ユーザー名またはパスワードが正しくありません')
+    try {
+      const user = await authenticateUser(username, password)
+
+      if (user) {
+        localStorage.setItem('currentUser', JSON.stringify(user))
+        localStorage.setItem('lastLoggedInUser', username)
+        onLogin(user)
+      } else {
+        setError('ユーザー名またはパスワードが正しくありません')
+      }
+    } catch (error) {
+      console.error('ログインエラー:', error)
+      setError('ログインに失敗しました。もう一度お試しください。')
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -168,9 +178,10 @@ export default function Login({ onLogin, onRegister }: LoginProps) {
 
             <button
               type="submit"
-              className="w-full bg-[var(--primary-blue)] text-white py-3 rounded-lg font-bold text-lg hover:bg-[var(--secondary-blue)] transition-colors mb-4"
+              disabled={isLoading}
+              className="w-full bg-[var(--primary-blue)] text-white py-3 rounded-lg font-bold text-lg hover:bg-[var(--secondary-blue)] transition-colors mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              ログイン
+              {isLoading ? 'ログイン中...' : 'ログイン'}
             </button>
           </form>
 
