@@ -28,46 +28,57 @@
 ## 技術スタック
 
 - **フロントエンド**: Next.js 14, React 18, TypeScript, Tailwind CSS
-- **バックエンド**: AWS Amplify Gen 2
-- **データベース**: Amazon DynamoDB
-- **API**: GraphQL (AWS AppSync)
+- **データベース**: Supabase (PostgreSQL)
 - **認証**: Web Authentication API (Face ID / Touch ID)
 - **ホスティング**: AWS Amplify Hosting
 
-## デプロイ手順
+## セットアップ手順
 
-### AWS Amplifyでデプロイ
+### 1. Supabaseプロジェクト作成
 
-1. **GitHubリポジトリと連携**
-   - https://console.aws.amazon.com/amplify にアクセス
-   - 「新しいアプリ」→「ホストウェブアプリ」を選択
-   - GitHubを選択して認証
-   - リポジトリ: `kamo6314-wq/walking-app`
-   - ブランチ: `main`
+1. https://supabase.com にアクセス
+2. 「Start your project」をクリック
+3. 新しいプロジェクトを作成
+4. プロジェクト名、データベースパスワードを設定
+5. リージョンを選択（Tokyo推奨）
 
-2. **ビルド設定**
-   - `amplify.yml`が自動検出されます
-   - バックエンド（DynamoDB、GraphQL API）も自動デプロイされます
-   - そのまま「次へ」
+### 2. データベーステーブル作成
 
-3. **デプロイ実行**
-   - 「保存してデプロイ」をクリック
-   - 以下が自動実行されます：
-     - バックエンドリソース作成（DynamoDB テーブル、GraphQL API）
-     - フロントエンドビルド
-     - 本番環境へデプロイ
+1. Supabaseダッシュボードで「SQL Editor」を開く
+2. `supabase-schema.sql`の内容をコピー＆ペースト
+3. 「Run」をクリックしてテーブルを作成
 
-4. **完了**
-   - デプロイ完了後、Amplifyが提供するURLでアクセス可能
-   - 例: `https://main.xxxxx.amplifyapp.com`
-   - 以降、GitHubへのプッシュで自動再デプロイ
+### 3. 環境変数設定
 
-### 環境変数
+1. Supabaseダッシュボードで「Settings」→「API」を開く
+2. 以下の値をコピー：
+   - Project URL
+   - anon public key
 
-Amplify Gen 2では`amplify_outputs.json`が自動生成されるため、手動での環境変数設定は不要です。
+3. AWS Amplifyコンソールで環境変数を設定：
+   - `NEXT_PUBLIC_SUPABASE_URL`: Project URL
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: anon public key
+
+### 4. デプロイ
+
+1. GitHubにプッシュ
+```bash
+git add .
+git commit -m "Add Supabase integration"
+git push origin main
+```
+
+2. AWS Amplifyが自動的に再デプロイ
 
 ## ローカル開発
 
+1. `.env.local`ファイルを作成
+```bash
+NEXT_PUBLIC_SUPABASE_URL=your-project-url.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
+
+2. 開発サーバー起動
 ```bash
 npm install
 npm run dev
@@ -75,16 +86,54 @@ npm run dev
 
 http://localhost:3002 でアクセス
 
-## データ永続化
+## データベース構造
 
-- **本番環境**: Amazon DynamoDB（自動デプロイ）
-- **ローカル開発**: localStorage（開発用）
+### users テーブル
+- id (UUID)
+- username (TEXT, UNIQUE)
+- password (TEXT)
+- is_admin (BOOLEAN)
+- walking_points (INTEGER)
+- gacha_points (INTEGER)
+- avatar (TEXT)
+- created_at (TIMESTAMP)
+
+### walk_records テーブル
+- id (UUID)
+- user_id (UUID)
+- distance (INTEGER)
+- points (INTEGER)
+- location (TEXT)
+- type (TEXT)
+- path (JSONB)
+- created_at (TIMESTAMP)
+
+### events テーブル
+- id (UUID)
+- title (TEXT)
+- description (TEXT)
+- date (TEXT)
+- time (TEXT)
+- bonus_points (INTEGER)
+- checkpoints (JSONB)
+- participants (JSONB)
+- created_at (TIMESTAMP)
+
+### chat_messages テーブル
+- id (UUID)
+- event_id (UUID)
+- user_id (UUID)
+- username (TEXT)
+- message (TEXT)
+- is_admin (BOOLEAN)
+- created_at (TIMESTAMP)
 
 ## 注意事項
 
 - 位置情報の許可が必要です
 - HTTPSが必要です（生体認証のため）
 - パスワードは本番環境でハッシュ化を推奨
+- Supabaseの無料プランは500MBまで
 
 ## ライセンス
 
