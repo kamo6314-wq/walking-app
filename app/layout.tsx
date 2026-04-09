@@ -1,20 +1,16 @@
-'use client'
-
 import './globals.css'
-import { useEffect } from 'react'
-import { configureAmplify } from '@/lib/amplify-config'
 
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  useEffect(() => {
-    configureAmplify()
-  }, [])
-
   return (
     <html lang="ja">
+      <head>
+        <title>歩活アプリ</title>
+        <meta name="description" content="毎日歩いてポイントを貯めよう" />
+      </head>
       <body>{children}</body>
     </html>
   )
